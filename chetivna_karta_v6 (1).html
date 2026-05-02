@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Четивна грамотност — Интерактивна карта</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=PT+Sans:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #FAFAF7;
+  --surface: #FFFFFF;
+  --ink: #2B2926;
+  --ink-soft: #6B6660;
+  --ink-muted: #9B9590;
+  --rule: #E5E0D8;
+  --rule-light: #F0ECE6;
+  --accent: #00C19F;
+  --accent-dark: #00A386;
+  --accent-bg: #E6F9F4;
+  --accent-bg2: #F0FBF8;
+  --warm: #C84B2F;
+  --warm-bg: #FEF3EE;
+  --blue: #2D5986;
+  --blue-bg: #EDF2F8;
+  --green: #3D7A5E;
+  --green-bg: #EDF5F0;
+  --purple: #7B4A9C;
+  --purple-bg: #F4EEF7;
+  --amber: #96750A;
+  --amber-bg: #FDF8E8;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: 'PT Sans', sans-serif; font-size: 15px; line-height: 1.65;
+  min-height: 100vh; -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+/* ═══ HEADER ═══ */
+header { padding: 32px 0 24px; border-bottom: 1px solid var(--rule); }
+header .wrap { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.logo-area h1 { font-family: 'Source Serif 4', serif; font-size: 23px; font-weight: 700; line-height: 1.2; }
+.logo-area h1 em { font-style: italic; color: var(--accent-dark); font-weight: 600; }
+.logo-area .subtitle { font-size: 13px; color: var(--ink-soft); margin-top: 3px; }
+.header-right { margin-left: auto; }
+.btn-reset {
+  padding: 7px 16px; background: var(--surface); border: 1px solid var(--rule);
+  border-radius: 6px; font-family: 'PT Sans', sans-serif; font-size: 12px;
+  font-weight: 700; color: var(--ink-soft); cursor: pointer; display: none;
+  transition: all 0.15s;
+}
+.btn-reset:hover { border-color: var(--ink-soft); color: var(--ink); }
+.btn-reset.vis { display: inline-flex; }
+
+/* ═══ PROGRESS ═══ */
+.progress-bar { background: var(--surface); border-bottom: 1px solid var(--rule); padding: 14px 0; }
+.steps-track { display: flex; align-items: center; }
+.step-item { display: flex; flex-direction: column; align-items: center; min-width: 50px; }
+.step-dot {
+  width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--rule);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: var(--ink-muted); background: var(--surface);
+  transition: all 0.2s; flex-shrink: 0;
+}
+.step-dot.active { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+.step-dot.done { border-color: var(--accent); color: #fff; background: var(--accent); }
+.step-dot.done::after { content: '✓'; font-size: 13px; }
+.step-dot.done span { display: none; }
+.step-line { flex: 1; height: 2px; background: var(--rule); transition: background 0.3s; }
+.step-line.done { background: var(--accent); }
+.step-label { font-size: 9px; color: var(--ink-muted); text-align: center; margin-top: 4px; font-weight: 700; letter-spacing: 0.04em; }
+.step-label.active { color: var(--accent-dark); }
+.step-label.done { color: var(--accent); }
+
+/* ═══ SECTIONS ═══ */
+.section { display: none; animation: fadeUp 0.3s ease; }
+.section.active { display: block; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.section-inner { padding: 28px 0 48px; }
+.section-title { font-family: 'Source Serif 4', serif; font-size: 21px; font-weight: 600; margin-bottom: 5px; }
+.section-desc { font-size: 14px; color: var(--ink-soft); margin-bottom: 22px; max-width: 580px; line-height: 1.6; }
+
+/* ═══ OPTION CARDS ═══ */
+.options-grid { display: grid; gap: 12px; }
+.options-grid.cols2 { grid-template-columns: 1fr 1fr; }
+.opt-card {
+  background: var(--surface); border: 2px solid var(--rule); border-radius: var(--radius);
+  padding: 20px; cursor: pointer; transition: all 0.2s; position: relative;
+}
+.opt-card:hover { border-color: var(--accent); box-shadow: var(--shadow-sm); }
+.opt-card.selected { border-color: var(--accent); background: var(--accent-bg2); }
+.opt-card .opt-icon { font-size: 26px; margin-bottom: 8px; display: block; }
+.opt-card .opt-title { font-weight: 700; font-size: 15px; margin-bottom: 3px; }
+.opt-card .opt-desc { font-size: 12px; color: var(--ink-soft); line-height: 1.55; }
+
+/* ═══ SUBJECT CARDS ═══ */
+.subj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 10px; }
+.subj-card {
+  background: var(--surface); border: 2px solid var(--rule); border-radius: var(--radius-sm);
+  padding: 14px 14px; cursor: pointer; transition: all 0.2s; text-align: center;
+}
+.subj-card:hover { border-color: var(--accent); }
+.subj-card.selected { border-color: var(--accent); background: var(--accent-bg2); }
+.subj-card .subj-emoji { font-size: 22px; margin-bottom: 4px; display: block; }
+.subj-card .subj-name { font-weight: 700; font-size: 12px; }
+
+/* ═══ TEXT TYPE CARDS ═══ */
+.tt-card {
+  background: var(--surface); border: 2px solid var(--rule); border-radius: var(--radius);
+  padding: 18px 20px; cursor: pointer; transition: all 0.2s; position: relative;
+}
+.tt-card:hover { border-color: var(--accent); }
+.tt-card.selected { border-color: var(--accent); background: var(--accent-bg2); }
+.tt-card .tt-name {
+  font-weight: 700; font-size: 15px; margin-bottom: 2px;
+  display: flex; align-items: center; gap: 8px;
+}
+.tt-card .tt-name .tt-color { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.tt-card .tt-hint { font-size: 12px; color: var(--ink-soft); line-height: 1.6; margin-top: 2px; }
+.tt-card .tt-examples {
+  margin-top: 8px; padding: 8px 12px; background: var(--rule-light);
+  border-radius: 6px; font-size: 11px; color: var(--ink-soft); line-height: 1.6;
+}
+.tt-card .tt-examples strong {
+  color: var(--ink); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 2px;
+}
+/* recommended badge */
+.tt-rec {
+  position: absolute; top: 10px; right: 10px;
+  padding: 2px 8px; border-radius: 4px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.03em;
+  background: var(--accent-bg); color: var(--accent-dark); border: 1px solid #B0E0D0;
+}
+/* subject-specific genre label */
+.tt-genre {
+  display: inline-block; margin-bottom: 6px;
+  padding: 2px 10px; border-radius: 4px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+  background: var(--blue-bg); color: var(--blue);
+}
+
+/* ═══ LEVEL CARDS ═══ */
+.result-header {
+  display: flex; align-items: center; gap: 12px; padding: 14px 20px;
+  background: var(--accent-bg); border-radius: var(--radius) var(--radius) 0 0;
+  border: 1px solid #C0E8DF; border-bottom: none;
+}
+.result-header .rh-icon { font-size: 22px; }
+.result-header .rh-text { font-size: 13px; color: var(--accent-dark); line-height: 1.5; }
+.result-header .rh-text strong { color: var(--ink); }
+
+.level-cards {
+  display: flex; flex-direction: column; border: 1px solid var(--rule);
+  border-radius: 0 0 var(--radius) var(--radius); overflow: hidden;
+}
+.level-card { background: var(--surface); border-bottom: 1px solid var(--rule); overflow: hidden; }
+.level-card:last-child { border-bottom: none; }
+
+.lc-header {
+  padding: 16px 20px; cursor: pointer; display: flex; align-items: center; gap: 14px;
+  transition: background 0.15s; user-select: none;
+}
+.lc-header:hover { background: var(--rule-light); }
+.lc-num {
+  width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  font-family: 'Source Serif 4', serif; font-size: 16px; font-weight: 700; flex-shrink: 0;
+}
+.lc-num.n1 { background: var(--blue-bg); color: var(--blue); }
+.lc-num.n2 { background: var(--green-bg); color: var(--green); }
+.lc-num.n3 { background: var(--purple-bg); color: var(--purple); }
+.lc-num.n4 { background: var(--amber-bg); color: var(--amber); }
+
+.lc-info { flex: 1; }
+.lc-title { font-weight: 700; font-size: 14px; }
+.lc-subtitle { font-size: 12px; color: var(--ink-soft); margin-top: 1px; }
+.lc-diff { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.lc-diff.easy { background: #E8F5E9; color: #2E7D32; }
+.lc-diff.medium { background: #FFF8E1; color: #F57F17; }
+.lc-diff.hard { background: #FCE4EC; color: #C62828; }
+.lc-arrow { font-size: 13px; color: var(--ink-muted); transition: transform 0.2s; flex-shrink: 0; }
+.level-card.open .lc-arrow { transform: rotate(90deg); }
+
+.lc-body { display: none; padding: 0 20px 20px 72px; }
+.level-card.open .lc-body { display: block; }
+
+.example-box {
+  padding: 14px 16px; background: var(--rule-light); border-radius: var(--radius-sm);
+  border-left: 3px solid var(--accent); margin-bottom: 12px;
+}
+.ex-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); margin-bottom: 5px; }
+.ex-text { font-family: 'Source Serif 4', serif; font-size: 13px; font-style: italic; color: var(--ink); line-height: 1.65; }
+
+/* subject-specific example highlight */
+.ex-subj-box {
+  padding: 12px 16px; background: #FFF8F0; border-radius: var(--radius-sm);
+  border-left: 3px solid var(--amber); margin-bottom: 12px;
+}
+.ex-subj-box .ex-label { color: var(--amber); }
+
+.design-tips { margin-top: 0; }
+.dt-toggle {
+  background: none; border: none; cursor: pointer; font-family: 'PT Sans', sans-serif;
+  font-size: 12px; font-weight: 700; color: var(--accent-dark); padding: 0;
+  display: flex; align-items: center; gap: 5px;
+}
+.dt-toggle:hover { color: var(--warm); }
+.dt-body { display: none; margin-top: 8px; }
+.design-tips.open .dt-body { display: block; }
+.dt-item {
+  padding: 5px 0 5px 14px; font-size: 13px; color: var(--ink-soft);
+  position: relative; line-height: 1.6; border-bottom: 1px solid var(--rule-light);
+}
+.dt-item:last-child { border-bottom: none; }
+.dt-item::before { content: '→'; position: absolute; left: 0; color: var(--accent); font-size: 12px; }
+
+.trap-box {
+  margin-top: 8px; padding: 10px 14px; background: #FFF8F0;
+  border-left: 3px solid var(--warm); border-radius: 0 6px 6px 0;
+  font-size: 12px; color: #7B4500; line-height: 1.6;
+}
+.trap-box strong { color: var(--warm); }
+.na-box { padding: 18px; text-align: center; color: var(--ink-muted); font-size: 13px; font-style: italic; }
+
+/* ═══ INSIGHT / COMPLEXITY ═══ */
+.insight-bar {
+  margin-top: 24px; padding: 16px 20px; background: var(--surface);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+}
+.ib-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); margin-bottom: 6px; }
+.ib-content { font-size: 13px; color: var(--ink-soft); line-height: 1.7; }
+.ib-content strong { color: var(--ink); }
+
+.complexity-note {
+  margin-top: 16px; padding: 16px 20px; background: var(--surface);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+}
+.complexity-note h4 { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+.cx-items { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.cx-item {
+  padding: 10px 12px; background: var(--rule-light); border-radius: 6px;
+  font-size: 11px; line-height: 1.5; color: var(--ink-soft);
+}
+.cx-item strong { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; color: var(--ink); }
+
+.back-link {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700;
+  color: var(--ink-muted); cursor: pointer; margin-bottom: 14px; padding: 6px 0;
+  border: none; background: none; font-family: 'PT Sans', sans-serif;
+}
+.back-link:hover { color: var(--accent-dark); }
+.grade-info {
+  margin-top: 14px; padding: 12px 16px; background: var(--blue-bg);
+  border-radius: var(--radius-sm); font-size: 12px; color: var(--blue); line-height: 1.6; display: none;
+}
+.grade-info.vis { display: block; }
+
+/* ═══ RESPONSIVE ═══ */
+@media (max-width: 640px) {
+  .wrap { padding: 0 16px; }
+  .options-grid.cols2 { grid-template-columns: 1fr; }
+  .subj-grid { grid-template-columns: 1fr 1fr; }
+  .cx-items { grid-template-columns: 1fr; }
+  .lc-body { padding-left: 20px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="logo-area">
+      <h1>Четивна грамотност<br><em>— Интерактивна карта</em></h1>
+      <div class="subtitle">Помощник за задачи с текст · за всеки предмет и етап</div>
+    </div>
+    <div class="header-right">
+      <button class="btn-reset" id="resetBtn" onclick="resetAll()">↻ Започни отначало</button>
+    </div>
+  </div>
+</header>
+
+<div class="progress-bar">
+  <div class="wrap">
+    <div class="steps-track" id="stepsTrack">
+      <div class="step-item"><div class="step-dot active" id="sd1"><span>1</span></div><div class="step-label active">Роля</div></div>
+      <div class="step-line" id="sl1"></div>
+      <div class="step-item"><div class="step-dot" id="sd2"><span>2</span></div><div class="step-label">Предмет</div></div>
+      <div class="step-line" id="sl2"></div>
+      <div class="step-item"><div class="step-dot" id="sd3"><span>3</span></div><div class="step-label">Тип текст</div></div>
+      <div class="step-line" id="sl3"></div>
+      <div class="step-item"><div class="step-dot" id="sd4"><span>4</span></div><div class="step-label">Задачи</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="section active" id="sec1">
+  <div class="wrap section-inner">
+    <div class="section-title">Какъв учител си?</div>
+    <div class="section-desc">Изберете вашата роля — това ще определи какви типове текстове и нива на четене ще видите.</div>
+    <div class="options-grid cols2" id="roleGrid">
+      <div class="opt-card" data-role="nachalen" onclick="selectRole(this)">
+        <span class="opt-icon">🏫</span>
+        <div class="opt-title">Начален учител</div>
+        <div class="opt-desc">I–IV клас. Работите с различни предмети — не само БЕЛ. Четенето с разбиране е навсякъде.</div>
+      </div>
+      <div class="opt-card" data-role="predmeten_progim" onclick="selectRole(this)">
+        <span class="opt-icon">📐</span>
+        <div class="opt-title">Учител в прогимназия</div>
+        <div class="opt-desc">V–VII клас. Преподавате конкретен предмет и искате да включите четене с разбиране.</div>
+      </div>
+      <div class="opt-card" data-role="predmeten_gimn" onclick="selectRole(this)">
+        <span class="opt-icon">🎓</span>
+        <div class="opt-title">Учител в гимназия</div>
+        <div class="opt-desc">VIII–X клас. По-сложни текстове — функционални стилове и продуктивни задачи.</div>
+      </div>
+      <div class="opt-card" data-role="tsoud" onclick="selectRole(this)">
+        <span class="opt-icon">🌟</span>
+        <div class="opt-title">ЦОУД учител</div>
+        <div class="opt-desc">Целодневна организация. Работите по четене извън стандартния учебен план.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="sec2">
+  <div class="wrap section-inner">
+    <button class="back-link" onclick="goBack(1)">← Назад</button>
+    <div class="section-title" id="subjTitle">По кой предмет работите?</div>
+    <div class="section-desc" id="subjDesc">Ще получите типове текстове и примери, адаптирани за вашия предмет.</div>
+    <div class="subj-grid" id="subjGrid"></div>
+    <div class="grade-info" id="gradeInfo"></div>
+  </div>
+</div>
+
+<div class="section" id="sec3">
+  <div class="wrap section-inner">
+    <button class="back-link" onclick="goBack(2)">← Назад</button>
+    <div class="section-title" id="ttTitle">Какъв текст имате?</div>
+    <div class="section-desc" id="ttDesc">Подсказките ще ви помогнат да разпознаете типа. Препоръчаните са най-честите за вашия предмет.</div>
+    <div id="ttGrid" style="display:grid;gap:10px;"></div>
+  </div>
+</div>
+
+<div class="section" id="sec4">
+  <div class="wrap section-inner">
+    <button class="back-link" onclick="goBack(3)">← Назад</button>
+    <div id="resultArea"></div>
+  </div>
+</div>
+
+<script>
+let state = { role:null, stage:null, subject:null, textType:null };
+
+// ══════════════════════════════════════════════════════════════
+// SUBJECTS
+// ══════════════════════════════════════════════════════════════
+const SUBJECTS = {
+  nachalen: [
+    {id:'bel',emoji:'📖',name:'Български език и литература'},
+    {id:'mat',emoji:'🔢',name:'Математика'},
+    {id:'ok_sv',emoji:'🌍',name:'Околен свят / Човекът и обществото'},
+    {id:'priroda',emoji:'🌿',name:'Човекът и природата'},
+    {id:'other',emoji:'📝',name:'Друг предмет'},
+  ],
+  predmeten_progim: [
+    {id:'bel',emoji:'📖',name:'БЕЛ'},
+    {id:'mat',emoji:'📐',name:'Математика'},
+    {id:'ist',emoji:'🏛️',name:'История'},
+    {id:'geo',emoji:'🗺️',name:'География'},
+    {id:'bio',emoji:'🧬',name:'Биология'},
+    {id:'fizika',emoji:'⚡',name:'Физика'},
+    {id:'himia',emoji:'🧪',name:'Химия'},
+    {id:'it',emoji:'💻',name:'ИТ'},
+    {id:'other',emoji:'📝',name:'Друг предмет'},
+  ],
+  predmeten_gimn: [
+    {id:'bel',emoji:'📖',name:'БЕЛ'},
+    {id:'mat',emoji:'📐',name:'Математика'},
+    {id:'ist',emoji:'🏛️',name:'История'},
+    {id:'geo',emoji:'🗺️',name:'География'},
+    {id:'bio',emoji:'🧬',name:'Биология'},
+    {id:'fizika',emoji:'⚡',name:'Физика'},
+    {id:'himia',emoji:'🧪',name:'Химия'},
+    {id:'filosofia',emoji:'💭',name:'Философия / Етика'},
+    {id:'other',emoji:'📝',name:'Друг предмет'},
+  ],
+  tsoud: [
+    {id:'tsoud_bel',emoji:'📖',name:'Четене и грамотност'},
+    {id:'tsoud_stem',emoji:'🔬',name:'СТЕМ / Математика'},
+    {id:'tsoud_soc',emoji:'🌍',name:'Социален свят'},
+    {id:'tsoud_tvor',emoji:'🎨',name:'Творчество / Проекти'},
+    {id:'tsoud_other',emoji:'⭐',name:'Друго'},
+  ]
+};
+
+// ══════════════════════════════════════════════════════════════
+// SUBJECT-SPECIFIC TEXT GENRE MAPPING
+// Maps subject → list of text types with subject-specific names,
+// hints, examples, and recommendation level
+// ══════════════════════════════════════════════════════════════
+const SUBJ_TEXT_MAP = {
+
+// ── PRIMARY ──
+'primary|bel': null, // null = use default text types, no override
+'primary|mat': [
+  { dataId:'p-info', genre:'Текстова задача', rec:true,
+    hint:'Условие на математическа задача с числа, отношения и въпрос. Ученикът трябва да разбере текста, за да смята.',
+    examples:'„Мария има 12 ябълки…" · „В клас има 3 реда с по 8 чина…" · Задачи с „повече/по-малко от"' },
+  { dataId:'p-instr', genre:'Инструкция / Алгоритъм', rec:true,
+    hint:'Стъпки за решаване, правила на игра с числа, метод за пресмятане. Казва какво да направиш в ред.',
+    examples:'„Стъпка 1: Намери сбора…" · Правила на математическа игра · Инструкция за чертане' },
+  { dataId:'p-hud', genre:'Разказ / Приказка с числа', rec:false,
+    hint:'Приказка или история, в която има математическа логика — броене, сравняване, разпределяне.',
+    examples:'„Трите прасенца" (разпределяне) · Приказка за „справедливо делене"' },
+],
+'primary|ok_sv': [
+  { dataId:'p-info', genre:'Описание на обществен факт', rec:true,
+    hint:'Текст за професии, институции, общности, исторически факти. Представя реалния социален свят.',
+    examples:'Текст за пожарникарите · Описание на празник · „Как работи пощата"' },
+  { dataId:'p-hud', genre:'Разказ / Приказка', rec:false,
+    hint:'Художествен текст, който илюстрира социална ситуация — приятелство, семейство, правила на общуване.',
+    examples:'Разказ за приятелството · Приказка за различните хора' },
+  { dataId:'p-instr', genre:'Правила / Инструкция', rec:false,
+    hint:'Правила за поведение, стъпки за безопасност, процедура.',
+    examples:'Правила за пътна безопасност · „Какво правим при земетресение"' },
+],
+'primary|priroda': [
+  { dataId:'p-info', genre:'Научно-популярен текст', rec:true,
+    hint:'Описание на животно, растение, природно явление. Съобщава факти за реалния свят.',
+    examples:'Текст за слоновете · Описание на кръговрата на водата · „Как расте фасулът"' },
+  { dataId:'p-instr', genre:'Инструкция за опит / Наблюдение', rec:true,
+    hint:'Стъпки за провеждане на експеримент, правила за наблюдение на природата.',
+    examples:'Инструкция за опит с магнит · „Как да наблюдаваш пеперудите" · Стъпки за засаждане' },
+  { dataId:'p-hud', genre:'Разказ за природата', rec:false,
+    hint:'Художествен текст с природна тематика — може да има герои-животни.',
+    examples:'Разказ за кучето · Стихотворение за пролетта · Басня с животни' },
+],
+'primary|other': null,
+
+// ── MIDDLE ──
+'middle|bel': null,
+'middle|mat': [
+  { dataId:'m-izl', genre:'Дефиниция / Обяснение', rec:true,
+    hint:'Текст, който въвежда понятие, формулира дефиниция, обяснява свойство. Структуриран, без сюжет.',
+    examples:'Дефиниция за лице на триъгълник · Обяснение на метода на заместването · Свойства на пропорциите' },
+  { dataId:'m-prk', genre:'Таблица / Диаграма / Графика', rec:true,
+    hint:'Данни, представени в нетекстов формат. Изискват нелинейно четене — отчитане, сравняване, извод.',
+    examples:'Стълбовидна диаграма с резултати · Таблица с функционални стойности · Кръгова диаграма' },
+  { dataId:'m-sme', genre:'Задача с текст + таблица/графика', rec:true,
+    hint:'Текстова задача, която включва и нетекстов елемент (графика, таблица). Двата носителя се четат заедно.',
+    examples:'Текстова задача с ценова таблица · Условие с диаграма за интерпретиране' },
+  { dataId:'m-ins', genre:'Правило / Алгоритъм', rec:false,
+    hint:'Стъпки за решаване, формула с обяснение, процедура.',
+    examples:'Алгоритъм за намиране на НОД · Правило за действия със скоби · Инструкция за конструиране' },
+],
+'middle|ist': [
+  { dataId:'m-nar', genre:'Исторически разказ / Хроника', rec:true,
+    hint:'Текст, който разказва събитие в хронологичен ред — има време, място, участници.',
+    examples:'Разказ за Априлското въстание · Хроника на битка · Биографичен откъс' },
+  { dataId:'m-izl', genre:'Учебников текст / Обяснение', rec:true,
+    hint:'Обяснява исторически процес, институция или период. Структуриран, без сюжет.',
+    examples:'Текст за феодализма · Описание на Римската република · Обяснение на Ренесанса' },
+  { dataId:'m-arg', genre:'Исторически източник с позиция', rec:true,
+    hint:'Документ, реч, писмо — изразява позиция, която трябва да се анализира.',
+    examples:'Откъс от реч · Писмо на деятел · Мемоар с позиция за събитие' },
+  { dataId:'m-prk', genre:'Хронологична таблица / Карта', rec:false,
+    hint:'Времева ос, таблица с дати, историческа карта. Нелинейно четене.',
+    examples:'Хронологична таблица „България 681–1018" · Историческа карта с легенда' },
+  { dataId:'m-sme', genre:'Текст + карта/таблица', rec:false,
+    hint:'Исторически текст, допълнен от карта, таблица или илюстрация.',
+    examples:'Описание на поход + карта на маршрута · Текст за население + таблица с данни' },
+],
+'middle|geo': [
+  { dataId:'m-izl', genre:'Географски описателен текст', rec:true,
+    hint:'Описва природна зона, климат, население, стопанство. Структуриран, с факти и данни.',
+    examples:'Текст за Амазонската низина · Описание на климатичен пояс · Характеристика на река' },
+  { dataId:'m-prk', genre:'Карта / Диаграма / Климатограма', rec:true,
+    hint:'Географска или тематична карта с легенда, климатограма, графика. Нелинейно четене.',
+    examples:'Тематична карта с легенда · Климатограма · Диаграма за население' },
+  { dataId:'m-sme', genre:'Текст + карта/графика', rec:true,
+    hint:'Географски текст, допълнен от карта, таблица или диаграма. Трябва да се четат заедно.',
+    examples:'Текст за туризъм + карта · Описание на стопанство + диаграма за износа' },
+  { dataId:'m-arg', genre:'Текст с позиция (екологичен / социален)', rec:false,
+    hint:'Статия, която аргументира позиция — за опазване на природата, за урбанизация и т.н.',
+    examples:'Текст за глобалното затопляне · Статия за ползите от рециклирането' },
+],
+'middle|bio': [
+  { dataId:'m-izl', genre:'Научен текст / Описание', rec:true,
+    hint:'Описва биологичен процес, орган, организъм. Структуриран, с термини.',
+    examples:'Текст за фотосинтезата · Описание на храносмилателната система · Характеристика на вида' },
+  { dataId:'m-prk', genre:'Схема / Таблица / Диаграма', rec:true,
+    hint:'Биологична схема, класификационна таблица, диаграма на процес.',
+    examples:'Схема на клетка · Таблица за класификация · Хранителна верига като диаграма' },
+  { dataId:'m-sme', genre:'Текст + схема/таблица', rec:false,
+    hint:'Описание на биологичен процес, допълнено от схема, таблица или илюстрация.',
+    examples:'Текст за кръвообращението + схема · Описание на еволюция + дървовидна диаграма' },
+  { dataId:'m-ins', genre:'Инструкция за лабораторна работа', rec:false,
+    hint:'Стъпки за провеждане на биологичен опит, наблюдение или дисекция.',
+    examples:'Инструкция за микроскопски препарат · Стъпки за опит с дрожди' },
+],
+'middle|fizika': [
+  { dataId:'m-izl', genre:'Научен текст / Дефиниция', rec:true,
+    hint:'Обяснява физичен закон, явление или принцип. Съдържа формули и термини.',
+    examples:'Текст за закона на Архимед · Обяснение на електрически ток · Дефиниция за сила' },
+  { dataId:'m-prk', genre:'Графика / Таблица с данни', rec:true,
+    hint:'Графика на зависимост, таблица с измервания, схема на уред.',
+    examples:'Графика „време — разстояние" · Таблица с опитни данни · Схема на верига' },
+  { dataId:'m-sme', genre:'Задача с текст + графика', rec:true,
+    hint:'Текстова задача с допълнителна графика, таблица или схема.',
+    examples:'Задача за движение + графика · Текст за топлообмен + таблица с температури' },
+  { dataId:'m-ins', genre:'Инструкция за опит', rec:false,
+    hint:'Стъпки за провеждане на физичен експеримент.',
+    examples:'Инструкция за измерване на маса · Протокол за опит с лещи' },
+],
+'middle|himia': [
+  { dataId:'m-izl', genre:'Научен текст / Описание на вещество', rec:true,
+    hint:'Описва химичен елемент, вещество, реакция. Съдържа формули и термини.',
+    examples:'Текст за свойствата на водата · Описание на киселини · Характеристика на елемент' },
+  { dataId:'m-prk', genre:'Периодична таблица / Схема на реакция', rec:true,
+    hint:'Таблица с данни, схема на реакция, диаграма за състав.',
+    examples:'Четене от периодичната таблица · Схема на химична реакция · Таблица за разтворимост' },
+  { dataId:'m-ins', genre:'Инструкция за лабораторна работа', rec:false,
+    hint:'Стъпки за провеждане на химичен опит, правила за безопасност.',
+    examples:'Инструкция за опит с индикатори · Правила за работа с киселини' },
+],
+'middle|it': [
+  { dataId:'m-ins', genre:'Инструкция / Алгоритъм', rec:true,
+    hint:'Стъпки за изпълнение на задача, алгоритъм, блок-схема описана в текст.',
+    examples:'Алгоритъм за сортиране · Инструкция за работа със Scratch · Стъпки за създаване на уебсайт' },
+  { dataId:'m-izl', genre:'Описание на технология / Концепция', rec:false,
+    hint:'Обяснява какво е програма, мрежа, база данни. Информационен текст с термини.',
+    examples:'Текст за Интернет · Описание на операционна система · Какво е променлива' },
+  { dataId:'m-prk', genre:'Блок-схема / Таблица', rec:false,
+    hint:'Визуално представяне на алгоритъм, таблица с данни за обработка.',
+    examples:'Блок-схема на програма · Таблица с входни/изходни данни' },
+],
+'middle|other': null,
+
+// ── HIGH SCHOOL ──
+'high|bel': null,
+'high|mat': [
+  { dataId:'h-nau', genre:'Дефиниция / Теорема / Доказателство', rec:true,
+    hint:'Научен математически текст — въвежда понятие, формулира теорема, представя доказателство.',
+    examples:'Дефиниция за производна · Теорема на Питагор с доказателство · Свойства на логаритми' },
+  { dataId:'h-sme', genre:'Задача с текст + графика/таблица', rec:true,
+    hint:'Текстова задача с допълнителен визуален елемент — графика на функция, статистическа таблица.',
+    examples:'Задача за оптимизация + графика · Статистическа задача + хистограма · Задача с ценова таблица' },
+  { dataId:'h-pub', genre:'Текст с данни (статистически / финансов)', rec:false,
+    hint:'Публицистичен текст, който използва числови данни за аргументация — финансова грамотност, статистика.',
+    examples:'Статия за инфлация с графика · Текст за бюджет с таблица · Демографски анализ' },
+],
+'high|ist': [
+  { dataId:'h-pub', genre:'Исторически публицистичен текст', rec:true,
+    hint:'Статия, есе или коментар по историческа тема. Има авторска позиция и аргументи.',
+    examples:'Есе за Просвещението · Коментар за причините за WWI · Статия за деколонизацията' },
+  { dataId:'h-hud', genre:'Художествен текст с историческа тема', rec:false,
+    hint:'Литературен откъс, който пресъздава историческа епоха — разказ, мемоар, поезия.',
+    examples:'Откъс от „Под игото" · Мемоар от WWI · Поезия от Възраждането' },
+  { dataId:'h-nau', genre:'Първичен исторически документ', rec:true,
+    hint:'Оригинален документ — закон, договор, реч, манифест. Изисква контекстуализация.',
+    examples:'Търновска конституция (откъс) · Реч на Чърчил · Сан Стефански договор' },
+  { dataId:'h-sme', genre:'Текст + карта/хронология', rec:false,
+    hint:'Исторически текст с придружаваща карта, хронологична таблица или статистика.',
+    examples:'Текст за миграция + карта · Демографски текст + таблица с данни' },
+],
+'high|geo': [
+  { dataId:'h-pub', genre:'Публицистичен текст за географска тема', rec:true,
+    hint:'Статия или анализ за урбанизация, климатични промени, ресурси. Има позиция.',
+    examples:'Текст за глобалното затопляне · Анализ на водната криза · Статия за устойчиво развитие' },
+  { dataId:'h-nau', genre:'Научен географски текст', rec:true,
+    hint:'Описание на географски процес с термини и данни.',
+    examples:'Текст за тектониката на плочите · Описание на океански течения · Анализ на почвени типове' },
+  { dataId:'h-sme', genre:'Текст + карта/климатограма/диаграма', rec:true,
+    hint:'Географски текст с визуален елемент — тематична карта, климатограма, демографска таблица.',
+    examples:'Текст за стопанство + карта · Описание на климат + климатограма · Демография + диаграма' },
+],
+'high|bio': [
+  { dataId:'h-nau', genre:'Научен биологичен текст', rec:true,
+    hint:'Описание на биологичен процес, генетична закономерност, еволюционна теория. С термини.',
+    examples:'Текст за генното инженерство · Описание на имунен отговор · Теория за еволюцията' },
+  { dataId:'h-pub', genre:'Публицистичен текст (здраве / екология)', rec:false,
+    hint:'Статия за здравословен начин на живот, ваксинация, екологични проблеми.',
+    examples:'Статия за антибиотичната резистентност · Текст за ГМО · Анализ за биоразнообразие' },
+  { dataId:'h-sme', genre:'Текст + схема/диаграма', rec:false,
+    hint:'Биологичен текст с допълнителна схема, графика или класификационна таблица.',
+    examples:'Текст за ДНК + схема · Описание на екосистема + хранителна мрежа' },
+],
+'high|fizika': [
+  { dataId:'h-nau', genre:'Научен текст / Закон / Формула', rec:true,
+    hint:'Описва физичен закон, извежда формула, обяснява принцип. Висока лексикална плътност.',
+    examples:'Закон за запазване на енергията · Текст за електромагнитна индукция · Принцип на Бернули' },
+  { dataId:'h-sme', genre:'Задача с текст + графика/данни', rec:true,
+    hint:'Физична задача с графика на зависимост, таблица с измервания или схема.',
+    examples:'Задача за движение + графика v(t) · Опитни данни в таблица + анализ · Електрическа схема + текст' },
+],
+'high|himia': [
+  { dataId:'h-nau', genre:'Научен химичен текст', rec:true,
+    hint:'Описва химичен процес, реакция, свойства на вещество. С формули и термини.',
+    examples:'Текст за окислително-редукционни реакции · Описание на полимери · Химия на лекарствата' },
+  { dataId:'h-sme', genre:'Текст + периодична система/схема', rec:false,
+    hint:'Химичен текст с референция към таблица, схема на реакция или диаграма.',
+    examples:'Текст + периодичната таблица · Описание на реакция + схема · Данни от опит + графика' },
+],
+'high|filosofia': [
+  { dataId:'h-pub', genre:'Философско есе / Публицистика', rec:true,
+    hint:'Текст, който аргументира философска позиция — за справедливост, свобода, морал. Има теза.',
+    examples:'Есе за свободата · Текст за утилитаризъм vs. деонтология · Коментар за правата на човека' },
+  { dataId:'h-hud', genre:'Художествен текст с философска тема', rec:false,
+    hint:'Литературен откъс, който поставя философски въпрос — смисъл, идентичност, морален избор.',
+    examples:'Откъс от Достоевски · Притча · Стихотворение на Вапцаров' },
+  { dataId:'h-nau', genre:'Философски първоизточник', rec:true,
+    hint:'Откъс от оригинален философски текст — по-труден за четене, изисква контекстуализация.',
+    examples:'Откъс от Платон · Кант за категоричния императив · Сартр за свободата' },
+],
+'high|other': null,
+
+// ── TSOUD ──
+'primary|tsoud_bel': null,
+'primary|tsoud_stem': [
+  { dataId:'p-info', genre:'Научно-популярен текст', rec:true,
+    hint:'Текст за природен феномен, технология, космос. Представя факти увлекателно.',
+    examples:'Как работи ракетата · Защо небето е синьо · Текст за динозаврите' },
+  { dataId:'p-instr', genre:'Инструкция за проект / Опит', rec:true,
+    hint:'Стъпки за правене на модел, провеждане на опит, решаване на пъзел.',
+    examples:'Инструкция за хвърчило · Стъпки за вулкан от сода · Правила на логическа игра' },
+],
+'primary|tsoud_soc': [
+  { dataId:'p-info', genre:'Текст за обществото', rec:true,
+    hint:'Описание на институция, традиция, общност. Факти за социалния свят.',
+    examples:'Как работи общината · Текст за олимпийските игри · Описание на празник' },
+  { dataId:'p-hud', genre:'Разказ / Приказка', rec:false,
+    hint:'История с морал — за приятелство, справедливост, различие.',
+    examples:'Приказка за различните деца · Разказ за помощ · Басня за справедливост' },
+],
+'primary|tsoud_tvor': [
+  { dataId:'p-instr', genre:'Инструкция за проект', rec:true,
+    hint:'Стъпки за създаване на нещо — рисуване, моделиране, конструиране.',
+    examples:'Как да направиш маска · Инструкция за оригами · Стъпки за рисуване' },
+  { dataId:'p-hud', genre:'Художествен текст за вдъхновение', rec:false,
+    hint:'Стихотворение, приказка или разказ, който вдъхновява за творчески проект.',
+    examples:'Стихотворение за цветовете · Приказка за художник · Разказ за мечта' },
+],
+'primary|tsoud_other': null,
+};
+
+// ══════════════════════════════════════════════════════════════
+// BASE TEXT TYPES (for fallback / BEL)
+// ══════════════════════════════════════════════════════════════
+const BASE_TT = {
+  primary: [
+    { id:'p-hud', name:'Художествен текст', color:'#C84B2F',
+      hint:'Разказ, приказка, стихотворение. Има герои, сюжет, емоции.',
+      examples:'Басня · Откъс от повест · Стихотворение' },
+    { id:'p-info', name:'Информационен текст', color:'#3D7A5E',
+      hint:'Статия, описание, енциклопедичен текст. Факти за реалния свят.',
+      examples:'Статия за животни · Текст от учебник · Описание на явление' },
+    { id:'p-instr', name:'Инструкция / Правила', color:'#2D5986',
+      hint:'Рецепта, правила на игра, стъпки. Казва какво и в какъв ред.',
+      examples:'Рецепта · Правила за безопасност · Инструкция за опит' },
+  ],
+  middle: [
+    { id:'m-nar', name:'Нарация (разказ)', color:'#C84B2F',
+      hint:'Хронологична последователност — история, герой, действие.',
+      examples:'Откъс от „Под игото" · Разказ · Текст за историческо събитие' },
+    { id:'m-izl', name:'Изложение (информационен)', color:'#3D7A5E',
+      hint:'Представя информация структурирано — обяснява, описва, дава факти.',
+      examples:'Статия · Текст от учебник · Научно-популярен текст' },
+    { id:'m-arg', name:'Аргументация', color:'#7B4A9C',
+      hint:'Защитава позиция — теза и аргументи „за" и/или „против".',
+      examples:'Есе · Статия с позиция · Рецензия' },
+    { id:'m-ins', name:'Инструкция / Регламент', color:'#2D5986',
+      hint:'Правилник, процедура. Разрешено, забранено, задължително.',
+      examples:'Правилник · Процедура · Правила на състезание' },
+    { id:'m-prk', name:'Прекъснат текст', color:'#96750A',
+      hint:'Таблица, диаграма, графика — без свързана проза.',
+      examples:'Диаграма · Таблица с данни · Разписание' },
+    { id:'m-sme', name:'Смесен текст', color:'#C84B2F',
+      hint:'Проза + таблица/диаграма. Четат се заедно.',
+      examples:'Статия с графика · Текст с ценова таблица' },
+    { id:'m-med', name:'Медиен текст', color:'#7B4A9C',
+      hint:'Репортаж, интервю, новина. Предава чужда реч.',
+      examples:'Интервю · Репортаж · Новинарска статия' },
+  ],
+  high: [
+    { id:'h-pub', name:'Публицистичен стил', color:'#C84B2F',
+      hint:'Статия, есе, коментар. Авторска позиция и аргументи.',
+      examples:'Статия за кибертормоз · Есе за медиите' },
+    { id:'h-nau', name:'Научен / Официално-делови', color:'#2D5986',
+      hint:'Научен текст с термини или официален документ (заявление, CV).',
+      examples:'Научна статия · Заявление · Официално писмо' },
+    { id:'h-hud', name:'Художествен текст', color:'#7B4A9C',
+      hint:'Поезия, разказ, откъс от роман. Тълкуване на образ, мотив.',
+      examples:'Вапцаров · „Железния светилник" · Йовков' },
+    { id:'h-sme', name:'Смесен текст', color:'#96750A',
+      hint:'Публицистичен текст + диаграма. Интегриране на двата носителя.',
+      examples:'Статия с данни · Текст + графика' },
+    { id:'h-prod', name:'Продуктивни задачи', color:'#3D7A5E',
+      hint:'Ученикът създава: резюме, теза, CV, заявление.',
+      examples:'Резюме · Теза по тема · CV' },
+  ]
+};
+
+// ══════════════════════════════════════════════════════════════
+// TASK DATA (kept from v5 — same structure)
+// ══════════════════════════════════════════════════════════════
+const DATA = {
+'p-hud': { levels: [
+  { code:'П1', name:'Намери в текста', sub:'Информацията е директно написана — посочи я', diff:'easy', numClass:'n1',
+    ex:{ default:'„Какво направил гълъбът, когато видял, че мравката се дави?"',
+         mat:'„Колко ябълки останали в края на приказката?"',
+         priroda:'„Кое животно е главен герой в описанието?"',
+         ok_sv:'„Какво направило момичето, когато видяло новото дете?"' },
+    impl:['Питай за конкретен детайл — кой, какво, кога, колко','Отговорът е в едно изречение от текста','3 варианта за I–II кл., 4 за III–IV кл.'], trap:null },
+  { code:'П2', name:'Свържи идеите', sub:'Направи извод, като свържеш две части от текста', diff:'medium', numClass:'n2',
+    ex:{ default:'„Защо мравката успяла да помогне, въпреки че е малка?"',
+         mat:'„Защо детето не може да купи и двете неща?"',
+         priroda:'„Защо хоботът е важен за слона? Посочи две причини."' },
+    impl:['Свързва причина и следствие от различни места в текста','Задачи с „защо" и „как" са класически П2','Искай „две причини" за по-задълбочено четене'], trap:null },
+  { code:'П3', name:'Обясни и тълкувай', sub:'Обобщи идея или я обясни с думите си', diff:'medium', numClass:'n3',
+    ex:{ default:'„Умно ли е малкото раче? Посочи две причини."',
+         mat:'„Справедливо ли е разпределението в задачата? Обясни."',
+         priroda:'„Какво научаваш за поведението на котките от текста?"' },
+    impl:['Ученикът тълкува — отговорът не е директно в текста','Приемай перифраза — не изисквай точни думи','Частичен кредит: 2т. за две причини, 1т. за една'],
+    trap:'П3 изглежда субективна, но правилният отговор трябва да е защитим с текстово доказателство.' },
+  { code:'П4', name:'Прецени и оцени', sub:'Оцени как е направен текстът или какво означава', diff:'hard', numClass:'n4',
+    ex:{ default:'„Подхожда ли заглавието „Гълъбът" на текста? Защо?"',
+         priroda:'„Какъв баща е старият рак? Посочи две причини."' },
+    impl:['П4 се въвежда от III клас','Задачи за заглавие, морал или поука','Приемай различни позиции стига да са аргументирани'],
+    trap:'П4 при I–II клас е прекалено рано.' },
+]},
+
+'p-info': { levels: [
+  { code:'П1', name:'Намери в текста', sub:'Фактите са директно написани', diff:'easy', numClass:'n1',
+    ex:{ default:'„За какво служи хоботът на слона? Посочи две неща."',
+         mat:'„Колко са стъпките в описания метод?"',
+         priroda:'„Какво прави котката, когато се чувства добре?"',
+         ok_sv:'„Кои са основните задължения на пожарникаря?"' },
+    impl:['Задачи с „посочи две неща" са ефективни при информационен текст','Дистракторите: информация от друг абзац'], trap:null },
+  { code:'П2', name:'Свържи идеите', sub:'Свърже причина-следствие от различни части', diff:'medium', numClass:'n2',
+    ex:{ default:'„Защо котката е в стрес, когато се местиш?"',
+         mat:'„Довърши таблицата: Действие → Резултат."',
+         priroda:'„Защо хоботът е наречен \'проучвателен орган\'?"' },
+    impl:['Таблици (Действие → Резултат) са силен П2 при информационен текст','Изискват свързване от различни части'], trap:null },
+  { code:'П3', name:'Обясни и тълкувай', sub:'Синтезира от целия текст', diff:'medium', numClass:'n3',
+    ex:{ default:'„Какъв извод правиш за начина да разбираш котките?"',
+         priroda:'„Защо е важно да знаем как слонът усеща опасност?"' },
+    impl:['Задачи за „какъв извод правиш" са класически П3','Ученикът синтезира от целия текст'], trap:null },
+  { code:'П4', name:'Прецени и оцени', sub:'Оценява структурата или заглавието', diff:'hard', numClass:'n4',
+    ex:{ default:'„Помагат ли първите две изречения да разбереш за какво ще се говори?"',
+         priroda:'„Добро ли е заглавието на текста? Защо?"' },
+    impl:['П4 = оценяване на структурата или заглавието','Въвежда се от III–IV клас'],
+    trap:'Изисква метапознание за структурата — изгражда се постепенно.' },
+]},
+
+'p-instr': { levels: [
+  { code:'П1', name:'Намери в текста', sub:'Стъпки и факти са изброени', diff:'easy', numClass:'n1',
+    ex:{ default:'„Коя е първата стъпка?"',
+         mat:'„Колко пъти трябва да повториш действието?"',
+         priroda:'„Какво НЕ трябва да правиш според правилата?"' },
+    impl:['Задачи за последователност на стъпки са класически П1','Задачи с „НЕ трябва" изискват четене на целия текст'], trap:null },
+  { code:'П2', name:'Свържи идеите', sub:'Свързва правило с последствие', diff:'medium', numClass:'n2',
+    ex:{ default:'„Защо трябва да изпълниш стъпките в точния ред?"',
+         mat:'„Кога правилото важи само за едно нещо, а кога за всички?"' },
+    impl:['Свързване на правило с последствие от неспазването','Задачи за условия (кога важи/не важи) са силен П2'], trap:null },
+  { code:'П3', name:'Обясни и тълкувай', sub:'Прилагане в нова ситуация', diff:'medium', numClass:'n3',
+    ex:{ default:'„Ако нямаш третата съставка, ще успееш ли? Обясни."',
+         mat:'„Приложи правилото към новия пример."' },
+    impl:['П3 = прилагане на правило в нова ситуация','Много подходящо за математика и природни науки'], trap:null },
+  { code:'П4', name:'Прецени и оцени', sub:'Оценяване на яснотата', diff:'hard', numClass:'n4',
+    ex:{ default:'„Ясна ли е инструкцията? Кое би добавил/а?"' },
+    impl:['П4 = оценяване на яснотата или пълнотата','Рядко — предимно IV клас'], trap:null },
+]},
+
+'m-nar': { levels: [
+  { code:'Н1', name:'Намери в текста', sub:'Отговорът е директно написан', diff:'easy', numClass:'n1',
+    ex:{ default:'„Защо косачите идват в Тракия?"',
+         ist:'„Кога се случва събитието според текста?"' },
+    impl:['Информацията е в едно-две изречения','Избягвай задачи с много имена и дати'], trap:null },
+  { code:'Н2', name:'Тълкувай и обобщи', sub:'Отговорът не е директен — трябва да се изведе', diff:'medium', numClass:'n2',
+    ex:{ default:'„Защо чантата „сякаш" тежи повече?"',
+         ist:'„Каква е причината за описаното събитие?"' },
+    impl:['Свързва поне две части от текста','Задачи за „за какво е текстът" са Н2, не Н1'], trap:null },
+  { code:'Н3', name:'Прецени и оцени', sub:'Излиза извън текста — аргументира', diff:'hard', numClass:'n3',
+    ex:{ default:'„Каква роля изпълнява образът на брезата?"',
+         ist:'„Надежден ли е авторът като свидетел? Защо?"' },
+    impl:['Художествена функция, символ, авторска позиция','Ключът трябва да включва примерни отговори'],
+    trap:'Н3 при нарация е устойчиво труден — под 40% верни е нормално.' },
+]},
+
+'m-izl': { levels: [
+  { code:'Н1', name:'Намери в текста', sub:'Числа, имена, конкретни факти', diff:'easy', numClass:'n1',
+    ex:{ default:'„Колко думи/минута чете нормалният читател?"',
+         mat:'„Каква е стойността на X според текста?"',
+         bio:'„Кой орган е отговорен за X?"',
+         geo:'„Колко е средната температура през януари?"',
+         fizika:'„Каква е мерната единица за сила?"',
+         himia:'„Какъв е химичният символ на X?"',
+         ist:'„Кога е създадена институцията?"' },
+    impl:['Числа, имена и конкретни факти — класически Н1','Дистракторите: близки стойности от текста'], trap:null },
+  { code:'Н2', name:'Тълкувай и обобщи', sub:'Сравнение, синтез, основна идея', diff:'medium', numClass:'n2',
+    ex:{ default:'„За какво е тази статия?"',
+         mat:'„Каква е разликата между двата метода?"',
+         bio:'„Каква е разликата между X и Y?"',
+         geo:'„Защо температурите се различават между двата региона?"',
+         fizika:'„Каква е връзката между сила и ускорение?"',
+         ist:'„Каква е основната промяна, описана в текста?"' },
+    impl:['"За какво е" ≠ "какво е казано" — втората е Н1','Задачи за сравнение са силен Н2'], trap:null },
+  { code:'Н3', name:'Прецени и оцени', sub:'Извод, оценка, цел на текста', diff:'hard', numClass:'n3',
+    ex:{ default:'„Може ли да се направи извод, че X е вредна?"',
+         bio:'„Каква е целта на текста — да информира или да предупреди?"',
+         geo:'„Може ли да се направи извод, че регионът е застрашен?"',
+         ist:'„Обективен ли е текстът? Защо?"' },
+    impl:['"Може ли да се направи извод" е правилният Н3 формат','Отговорът е защитим с цитат от текста'],
+    trap:'Не конструирай Н3 задачи, на които може да се отговори без текста.' },
+]},
+
+'m-arg': { levels: [
+  { code:'Н1', name:'Намери в текста', sub:'Разпознаване на аргумент', diff:'easy', numClass:'n1',
+    ex:{ default:'„Коя храна НЕ е спомената като вредна?"',
+         bio:'„Кое НЕ е аргумент в полза на ваксинацията?"',
+         geo:'„Кое НЕ е последица от обезлесяването?"' },
+    impl:['Задачи с „НЕ е аргумент" са класически Н1','Дистракторите: твърдения от контрааргумента'], trap:null },
+  { code:'Н2', name:'Тълкувай и обобщи', sub:'Причинно-следствена верига', diff:'medium', numClass:'n2',
+    ex:{ default:'„Какво е общото между X и Y?"',
+         bio:'„Как влияе X на Y според текста?"',
+         geo:'„Каква е връзката между урбанизация и замърсяване?"' },
+    impl:['Задачи за причинно-следствена верига','Съотнасянето (matching) е подходящ формат'], trap:null },
+  { code:'Н3', name:'Прецени и оцени', sub:'Авторска позиция и оценка', diff:'hard', numClass:'n3',
+    ex:{ default:'„Каква е позицията на автора?"',
+         bio:'„Убедителни ли са аргументите? Защо?"',
+         geo:'„Съгласен/съгласна ли си с позицията? Обоснови с текста."' },
+    impl:['Задължително: „според текста" в условието'],
+    trap:'Учениците отговарят с лично мнение вместо с текстови данни.' },
+]},
+
+'m-ins': { levels: [
+  { code:'Н1', name:'Намери в текста', sub:'Разрешено / забранено / стъпка', diff:'easy', numClass:'n1',
+    ex:{ default:'„Кое действие е забранено?"',
+         mat:'„Коя стъпка е първа в алгоритъма?"',
+         it:'„Какво се случва след стъпка 3?"' },
+    impl:['Задачи „Кое е забранено/разрешено" са класически Н1'], trap:null },
+  { code:'Н2', name:'Тълкувай и обобщи', sub:'Цел и обобщение', diff:'medium', numClass:'n2',
+    ex:{ default:'„Каква е целта на правилника?"',
+         it:'„За какво служи този алгоритъм?"' },
+    impl:['"Каква е целта" е Н2, не Н1'], trap:null },
+  { code:'Н3', name:'Прецени и оцени', sub:'Прилагане в нов случай', diff:'medium', numClass:'n3',
+    ex:{ default:'„В какъв случай има смисъл да купиш двукратен билет?"',
+         mat:'„Приложи правилото към новия случай."',
+         it:'„Какво ще се промени, ако размениш стъпки 2 и 3?"' },
+    impl:['Н3 = прилагане на правило в нова ситуация','Конкретен сценарий с персона е класическият формат'], trap:null },
+]},
+
+'m-prk': { levels: [
+  { code:'Н1', name:'Намери в текста', sub:'Отчитане на стойност', diff:'easy', numClass:'n1',
+    ex:{ default:'„Кой е най-предпочитаният спорт?"',
+         mat:'„Каква е стойността в клетка X?"',
+         geo:'„Кой е най-населеният град според картата?"',
+         bio:'„Кой вид има най-голяма популация?"' },
+    impl:['Насочвай точно към реда/колоната','Дистракторите: стойности от съседни позиции'], trap:null },
+  { code:'Н2', name:'Тълкувай и обобщи', sub:'Сравнение между полета', diff:'hard', numClass:'n2',
+    ex:{ default:'„Коя страна печели и при мъжете, и при жените?"',
+         mat:'„Коя категория показва най-голям ръст?"',
+         geo:'„Кой регион има и висока температура, и много валежи?"' },
+    impl:['Изисква четене на множество полета и синтез'],
+    trap:'Не прекалявай с изчислителни задачи — тестваш четене, не смятане.' },
+  { code:'Н3', name:'Прецени и оцени', sub:'—', diff:null, numClass:'n3',
+    na:'Н3 рядко се прилага при изолиран прекъснат текст — липсва реторичен контекст.' },
+]},
+
+'m-sme': { levels: [
+  { code:'Н1', name:'Намери в текста', sub:'Информация от единия носител', diff:'easy', numClass:'n1',
+    ex:{ default:'„Кое е вярно само според текста?"',
+         mat:'„Каква е стойността в таблицата за X?"',
+         geo:'„Кой град е отбелязан на картата?"',
+         fizika:'„Каква е стойността при t=5s?"' },
+    impl:['Задачата сочи към прозата ИЛИ таблицата — не двете (това е Н2)'], trap:null },
+  { code:'Н2', name:'Тълкувай и обобщи', sub:'Интегриране на текст + таблица', diff:'hard', numClass:'n2',
+    ex:{ default:'„Кое твърдение от текста се потвърждава от таблицата?"',
+         mat:'„Съответства ли графиката на описаното в условието?"',
+         geo:'„Съвпада ли информацията от текста с данните на картата?"',
+         fizika:'„Потвърждава ли графиката закона, описан в текста?"' },
+    impl:['Интегриране на текст И визуален елемент = класически Н2','Предвиди частичен кредит при свободен отговор'], trap:null },
+  { code:'Н3', name:'Прецени и оцени', sub:'Прилагане от прозата върху данни', diff:'hard', numClass:'n3',
+    ex:{ default:'„Ако семейство с X членове посети градината — колко плащат?"',
+         mat:'„Приложи правилото от текста към данните от таблицата."',
+         fizika:'„Предвиди каква ще е стойността при t=10s. Обясни."' },
+    impl:['Прилагане на правило от прозата към сценарий с данни','Задължителен свободен отговор с ясен ключ'],
+    trap:'Не повече от 1–2 Н3 задачи при смесен текст — максимално когнитивно натоварване.' },
+]},
+
+'m-med': { levels: [
+  { code:'Н1', name:'Намери в текста', sub:'Разпознаване на вид текст', diff:'easy', numClass:'n1',
+    ex:{ default:'„Текстът е: А) разговорен Б) научен В) медиен Г) художествен"' },
+    impl:['Разпознаване на вида текст е специфичен Н1 за VII клас'], trap:null },
+  { code:'Н2', name:'Тълкувай и обобщи', sub:'Факт vs. мнение', diff:'medium', numClass:'n2',
+    ex:{ default:'„Текстът допълва или противоречи на анкетата?"' },
+    impl:['Интегриране на медиен текст с данни е силен Н2','Разграничаване на факт от мнение'], trap:null },
+  { code:'Н3', name:'Прецени и оцени', sub:'Медийна цел', diff:'hard', numClass:'n3',
+    ex:{ default:'„Каква е целта на текста? Подкрепете с доказателства."' },
+    impl:['Медийна цел = Н3','Разграничавай „тема" (Н2) от „цел" (Н3)'],
+    trap:'„Целта" изглежда очевидна, но изисква доказателство от конкретни места.' },
+]},
+
+'h-pub': { levels: [
+  { code:'Н1', name:'Намери в текста', sub:'Факти, стил, термини', diff:'easy', numClass:'n1',
+    ex:{ default:'„Текстът принадлежи към: А) художествен Б) научен В) публицистичен стил"',
+         ist:'„Кое НЕ е последица от събитието според текста?"',
+         geo:'„Кое НЕ е причина за проблема според автора?"',
+         filosofia:'„Кое понятие НЕ се среща в текста?"' },
+    impl:['Разпознаване на стила е специфичен Н1 за гимназията','Задачи с „НЕ е" са ефективни'], trap:null },
+  { code:'Н2', name:'Анализирай и сравни', sub:'Позиция, структура на аргумент', diff:'medium', numClass:'n2',
+    ex:{ default:'„Каква е позицията на автора по темата?"',
+         ist:'„Сравни позициите в двата текста — в какво се съгласяват?"',
+         geo:'„Кои са основните аргументи „за" и „против"?"',
+         filosofia:'„Каква е тезата на автора? По какво се различава от X?"' },
+    impl:['Сравнение между два текста е силен Н2 при НВО X','Задачи за структура на аргумента (теза → довод → пример)'], trap:null },
+  { code:'Н3', name:'Оцени и създай', sub:'Оценяване или резюме', diff:'hard', numClass:'n3',
+    ex:{ default:'„Убедителни ли са аргументите? Обосновай."',
+         ist:'„Предай в резюме позицията на автора."',
+         filosofia:'„Съгласен/на ли си с тезата? Аргументирай с текста."' },
+    impl:['Н3 = оценяване на аргументацията или създаване на резюме','При НВО X: резюмето носи 16 точки'],
+    trap:'Резюмето не е преразказ. Ученикът преформулира основните идеи в свързан текст.' },
+]},
+
+'h-nau': { levels: [
+  { code:'Н1', name:'Намери в текста', sub:'Значение на термин, стил', diff:'easy', numClass:'n1',
+    ex:{ default:'„С какво значение е употребена думата „лимит"?"',
+         mat:'„Каква е дефиницията за производна в текста?"',
+         fizika:'„Каква е мерната единица за X?"',
+         himia:'„Какъв тип реакция е описана?"',
+         bio:'„Кой процес е отговорен за X?"',
+         ist:'„Какъв документ е това — закон, договор или писмо?"' },
+    impl:['Лексикален Н1 е характерен за гимназията','Стилистично разграничаване: неутрална vs. експресивна лексика'], trap:null },
+  { code:'Н2', name:'Анализирай и сравни', sub:'Функция, структура', diff:'medium', numClass:'n2',
+    ex:{ default:'„Каква е основната функция на официално-деловия текст?"',
+         mat:'„Коя стъпка от доказателството обосновава извода?"',
+         fizika:'„Какво следва от закона за конкретния случай?"',
+         ist:'„Каква е целта на документа — да информира, да нареди или да убеди?"' },
+    impl:['При научен текст: задачи за дефиниция и приложение','При официален текст: задачи за структура'], trap:null },
+  { code:'Н3', name:'Оцени и създай', sub:'Заявление, CV, резюме', diff:'hard', numClass:'n3',
+    ex:{ default:'„Напишете заявление/CV по зададени параметри."',
+         mat:'„Обяснете с думите си какво доказва теоремата."',
+         fizika:'„Предайте в резюме основната идея на текста."',
+         ist:'„Напишете резюме на документа. Какво цели авторът?"' },
+    impl:['Ключът е рубрика с критерии — не само примерен отговор','При НВО X: до 16 точки'],
+    trap:'Заявлението и CV имат строга структура — оценявай формата отделно от съдържанието.' },
+]},
+
+'h-hud': { levels: [
+  { code:'Н1', name:'Намери в текста', sub:'Жанр, герой, позиция', diff:'easy', numClass:'n1',
+    ex:{ default:'„Стихотворението е: А) ода Б) балада В) елегия Г) сатира"',
+         filosofia:'„За кой герой се отнасят думите X?"' },
+    impl:['Разпознаване на жанр е специфичен Н1 за гимназията'], trap:null },
+  { code:'Н2', name:'Анализирай и сравни', sub:'Опозиции, тълкуване', diff:'medium', numClass:'n2',
+    ex:{ default:'„Коя опозиция НЕ участва в изграждането на смисъла?"',
+         filosofia:'„Кое тълкуване съответства на смисъла на строфата?"' },
+    impl:['Задачи за опозиционни двойки = Н2','Тълкуване на строфа изисква контекст от цялото'], trap:null },
+  { code:'Н3', name:'Оцени и създай', sub:'Тълкуване, аргументиран отговор', diff:'hard', numClass:'n3',
+    ex:{ default:'„Обяснете как е представен животът в робство."' },
+    impl:['Разширен свободен отговор е стандартният Н3','Рубрика: скалиране 0/2/4/6/8 точки','При НВО X: 6–8 точки'],
+    trap:'При поетически текст Н3 изисква разбиране на целия контекст.' },
+]},
+
+'h-sme': { levels: [
+  { code:'Н1', name:'Намери в текста', sub:'Отчитане от единия носител', diff:'easy', numClass:'n1',
+    ex:{ default:'„Каква е стойността X според диаграмата?"',
+         mat:'„Каква е стойността при x=3 на графиката?"',
+         geo:'„Кой регион е отбелязан на картата?"' },
+    impl:['Задачата сочи към текста ИЛИ диаграмата — не двете'], trap:null },
+  { code:'Н2', name:'Анализирай и сравни', sub:'Интегриране на текст + диаграма', diff:'medium', numClass:'n2',
+    ex:{ default:'„Кое твърдение от диаграмата се потвърждава в текста?"',
+         mat:'„Съвпада ли описаната тенденция с данните на графиката?"',
+         geo:'„Потвърждава ли картата информацията в текста?"' },
+    impl:['Интегриране на текст И диаграма = класически Н2','Задачи за потвърждаване/противоречие'], trap:null },
+  { code:'Н3', name:'Оцени и създай', sub:'Синтез + аргумент', diff:'hard', numClass:'n3',
+    ex:{ default:'„Коя от ползите в диаграмата развива и културния хоризонт? Обосновайте."',
+         mat:'„На базата на графиката и текста — кога ще се изравнят стойностите? Обоснови."' },
+    impl:['Н3 при смесен = синтез от двата носителя + аргумент','При НВО X: свободен отговор, 4 точки'], trap:null },
+]},
+
+'h-prod': { levels: [
+  { code:'Н1', name:'—', sub:'—', diff:null, numClass:'n1',
+    na:'Продуктивните задачи нямат Н1 — те са Н2 и Н3 (синтез и създаване).' },
+  { code:'Н2', name:'Анализирай', sub:'Предварителен анализ', diff:'medium', numClass:'n2',
+    ex:{ default:'„Посочете аргументи в полза на тезата X."' },
+    impl:['Предварителен анализ преди продуктивната задача = Н2','Задачи за идентифициране на теза, аргументи и примери'], trap:null },
+  { code:'Н3', name:'Оцени и създай', sub:'Теза, резюме, CV', diff:'hard', numClass:'n3',
+    ex:{ default:'„Формулирайте теза на тема „Да имаш или да бъдеш"." · „Предайте в резюме (100–150 думи)." · „Напишете CV."' },
+    impl:['Тезата: позиция + готовност за аргументация','Резюмето: синтез, не цитати','Рубрика: съдържание / структура / език / обем'],
+    trap:'Продуктивните задачи при НВО X носят 14–16 точки. Учениците не ги тренират, защото изглеждат „субективни".' },
+]},
+};
+
+// ══════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════
+function getStage(role) {
+  if (role === 'nachalen' || role === 'tsoud') return 'primary';
+  if (role === 'predmeten_progim') return 'middle';
+  if (role === 'predmeten_gimn') return 'high';
+  return 'primary';
+}
+
+function getSubjectKey() {
+  return state.stage + '|' + state.subject;
+}
+
+function getExForSubject(exObj) {
+  if (!exObj) return '';
+  if (typeof exObj === 'string') return exObj;
+  // Try subject-specific, then default
+  const s = state.subject;
+  return exObj[s] || exObj.default || Object.values(exObj)[0] || '';
+}
+
+function showSection(n) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec' + n).classList.add('active');
+  updateProgress(n);
+  document.getElementById('resetBtn').classList.toggle('vis', n > 1);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateProgress(current) {
+  for (let i = 1; i <= 4; i++) {
+    const dot = document.getElementById('sd' + i);
+    const label = dot.parentElement.querySelector('.step-label');
+    dot.classList.remove('active', 'done');
+    label.classList.remove('active', 'done');
+    if (i < current) { dot.classList.add('done'); label.classList.add('done'); }
+    else if (i === current) { dot.classList.add('active'); label.classList.add('active'); }
+    if (i < 4) document.getElementById('sl' + i).classList.toggle('done', i < current);
+  }
+}
+
+function goBack(n) { showSection(n); }
+function resetAll() {
+  state = { role:null, stage:null, subject:null, textType:null };
+  document.querySelectorAll('.opt-card,.subj-card,.tt-card').forEach(c => c.classList.remove('selected'));
+  showSection(1);
+}
+
+// ══════════════════════════════════════════════════════════════
+// STEP 1: ROLE
+// ══════════════════════════════════════════════════════════════
+function selectRole(el) {
+  document.querySelectorAll('#roleGrid .opt-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  state.role = el.dataset.role;
+  state.stage = getStage(state.role);
+
+  const subjects = SUBJECTS[state.role] || SUBJECTS.nachalen;
+  const grid = document.getElementById('subjGrid');
+  grid.innerHTML = '';
+  subjects.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'subj-card';
+    card.dataset.subj = s.id;
+    card.innerHTML = `<span class="subj-emoji">${s.emoji}</span><span class="subj-name">${s.name}</span>`;
+    card.addEventListener('click', () => selectSubject(card, s.id));
+    grid.appendChild(card);
+  });
+
+  const gi = document.getElementById('gradeInfo');
+  if (state.role === 'tsoud') {
+    document.getElementById('subjTitle').textContent = 'В каква посока е занятието?';
+    document.getElementById('subjDesc').textContent = 'Изберете тематичната област — ще получите подходящи типове текстове.';
+    gi.innerHTML = '<strong>За ЦОУД:</strong> Картата показва нивата за начален етап (I–IV). Ако работите с по-големи ученици, повечето насоки остават валидни.';
+    gi.classList.add('vis');
+  } else {
+    document.getElementById('subjTitle').textContent = 'По кой предмет работите?';
+    document.getElementById('subjDesc').textContent = 'Ще получите типове текстове и примери, адаптирани за вашия предмет.';
+    gi.classList.remove('vis');
+  }
+  setTimeout(() => showSection(2), 200);
+}
+
+// ══════════════════════════════════════════════════════════════
+// STEP 2: SUBJECT → build text type list
+// ══════════════════════════════════════════════════════════════
+function selectSubject(el, subjId) {
+  document.querySelectorAll('#subjGrid .subj-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  state.subject = subjId;
+
+  const key = getSubjectKey();
+  const subjMap = SUBJ_TEXT_MAP[key];
+  const grid = document.getElementById('ttGrid');
+  grid.innerHTML = '';
+
+  const subjName = [...(SUBJECTS[state.role]||[])].find(s => s.id === subjId)?.name || '';
+
+  if (subjMap) {
+    // Subject-specific text types
+    document.getElementById('ttTitle').textContent = `Какъв текст имате по ${subjName}?`;
+    document.getElementById('ttDesc').textContent = 'Показваме типовете текст, които се срещат най-често във вашия предмет. ★ означава „най-типичен".';
+
+    // Sort: recommended first
+    const sorted = [...subjMap].sort((a,b) => (b.rec?1:0) - (a.rec?1:0));
+    sorted.forEach(tt => {
+      const base = [...BASE_TT[state.stage]].find(b => b.id === tt.dataId);
+      if (!base) return;
+      const card = document.createElement('div');
+      card.className = 'tt-card';
+      card.dataset.type = tt.dataId;
+      card.innerHTML = `
+        ${tt.rec ? '<span class="tt-rec">★ Типичен</span>' : ''}
+        <div class="tt-genre">Във вашия предмет: ${tt.genre}</div>
+        <div class="tt-name"><span class="tt-color" style="background:${base.color}"></span>${base.name}</div>
+        <div class="tt-hint">${tt.hint}</div>
+        <div class="tt-examples"><strong>Примери</strong>${tt.examples}</div>
+      `;
+      card.addEventListener('click', () => selectTextType(card, tt.dataId));
+      grid.appendChild(card);
+    });
+  } else {
+    // Default text types (BEL or generic)
+    document.getElementById('ttTitle').textContent = 'Какъв текст имате?';
+    document.getElementById('ttDesc').textContent = 'Подсказките ще ви помогнат да разпознаете типа.';
+
+    const ttList = BASE_TT[state.stage] || BASE_TT.primary;
+    ttList.forEach(tt => {
+      const card = document.createElement('div');
+      card.className = 'tt-card';
+      card.dataset.type = tt.id;
+      card.innerHTML = `
+        <div class="tt-name"><span class="tt-color" style="background:${tt.color}"></span>${tt.name}</div>
+        <div class="tt-hint">${tt.hint}</div>
+        <div class="tt-examples"><strong>Примери</strong>${tt.examples}</div>
+      `;
+      card.addEventListener('click', () => selectTextType(card, tt.id));
+      grid.appendChild(card);
+    });
+  }
+  setTimeout(() => showSection(3), 200);
+}
+
+// ══════════════════════════════════════════════════════════════
+// STEP 3: TEXT TYPE → RESULTS
+// ══════════════════════════════════════════════════════════════
+function selectTextType(el, typeId) {
+  document.querySelectorAll('#ttGrid .tt-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  state.textType = typeId;
+  renderResults();
+  setTimeout(() => showSection(4), 200);
+}
+
+// ══════════════════════════════════════════════════════════════
+// STEP 4: RENDER
+// ══════════════════════════════════════════════════════════════
+function renderResults() {
+  const d = DATA[state.textType];
+  if (!d) return;
+
+  const area = document.getElementById('resultArea');
+  const baseTT = [...BASE_TT.primary,...BASE_TT.middle,...BASE_TT.high].find(t => t.id === state.textType);
+  const subjInfo = [...(SUBJECTS[state.role]||[])].find(s => s.id === state.subject);
+  const subjName = subjInfo?.name || '';
+
+  // Check if there's a subject-specific genre name
+  const key = getSubjectKey();
+  const subjMap = SUBJ_TEXT_MAP[key];
+  const genreInfo = subjMap?.find(m => m.dataId === state.textType);
+
+  const stageLabel = {primary:'I–IV клас',middle:'V–VII клас',high:'VIII–X клас'}[state.stage];
+
+  let html = `
+    <div class="result-header">
+      <span class="rh-icon">📋</span>
+      <div class="rh-text">
+        ${genreInfo ? `<strong>${genreInfo.genre}</strong> (${baseTT?.name})` : `<strong>${baseTT?.name || ''}</strong>`}
+         · ${subjName} · ${stageLabel}<br>
+        <span style="font-size:12px;">Нива на четене с примерни задачи и насоки за дизайн</span>
+      </div>
+    </div>
+    <div class="level-cards">
+  `;
+
+  d.levels.forEach((lv, i) => {
+    const isFirst = i === 0;
+
+    if (lv.na) {
+      html += `
+        <div class="level-card">
+          <div class="lc-header" style="cursor:default;">
+            <div class="lc-num ${lv.numClass}">${lv.code}</div>
+            <div class="lc-info"><div class="lc-title">${lv.name}</div></div>
+          </div>
+          <div class="na-box">${lv.na}</div>
+        </div>`;
+      return;
+    }
+
+    const diffLabel = {easy:'Лесна',medium:'Оптимална',hard:'Трудна'}[lv.diff] || '';
+    const diffClass = lv.diff || '';
+    const exText = getExForSubject(lv.ex);
+
+    // Check if there's a subject-specific example different from default
+    const hasSubjEx = lv.ex && typeof lv.ex === 'object' && lv.ex[state.subject] && lv.ex[state.subject] !== lv.ex.default;
+    const defaultEx = lv.ex?.default || '';
+
+    html += `
+      <div class="level-card${isFirst ? ' open' : ''}">
+        <div class="lc-header" onclick="toggleLevel(this)">
+          <div class="lc-num ${lv.numClass}">${lv.code}</div>
+          <div class="lc-info">
+            <div class="lc-title">${lv.name}</div>
+            <div class="lc-subtitle">${lv.sub}</div>
+          </div>
+          ${diffLabel ? `<span class="lc-diff ${diffClass}">${diffLabel}</span>` : ''}
+          <span class="lc-arrow">▶</span>
+        </div>
+        <div class="lc-body"${isFirst ? ' style="display:block"' : ''}>
+          ${hasSubjEx ? `
+          <div class="ex-subj-box">
+            <div class="ex-label">Примерна задача за ${subjName}</div>
+            <div class="ex-text">${lv.ex[state.subject]}</div>
+          </div>
+          <div class="example-box">
+            <div class="ex-label">Общ пример (БЕЛ)</div>
+            <div class="ex-text">${defaultEx}</div>
+          </div>
+          ` : `
+          <div class="example-box">
+            <div class="ex-label">Примерна задача</div>
+            <div class="ex-text">${exText}</div>
+          </div>
+          `}
+          <div class="design-tips">
+            <button class="dt-toggle" onclick="toggleTips(this)">
+              <span>▶</span> Как да проектираш тази задача
+            </button>
+            <div class="dt-body">
+              ${(lv.impl||[]).map(tip => `<div class="dt-item">${tip}</div>`).join('')}
+              ${lv.trap ? `<div class="trap-box"><strong>Капан:</strong> ${lv.trap}</div>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  });
+
+  html += `</div>`;
+
+  html += `
+    <div class="complexity-note">
+      <h4>Защо типът текст не е скала за трудност</h4>
+      <div class="cx-items">
+        <div class="cx-item"><strong>Лексикална плътност</strong>Съотношението на непознати думи. Дори Н1 задача става трудна при непозната лексика.</div>
+        <div class="cx-item"><strong>Кохезия</strong>Степента на явна свързаност между изреченията. Ниска кохезия = ученикът сам строи връзките.</div>
+        <div class="cx-item"><strong>Разстояние от опита</strong>Колко далеч е темата от реалния свят на ученика.</div>
+      </div>
+    </div>`;
+
+  let insight = '';
+  if (state.stage === 'primary') {
+    insight = `<strong>Четири стъпки (П1–П4):</strong> П1 = буквално четене · П2 = причина/следствие · П3 = тълкуване · П4 = критическо мислене (от III кл.). Балансиран тест: ~25% лесни, ~55% оптимални, ~15% трудни.`;
+  } else if (state.stage === 'middle') {
+    insight = `<strong>Три нива (Н1–Н3):</strong> Н1 Намери · Н2 Тълкувай · Н3 Прецени. Нов в VI кл.: прекъснат и смесен текст. Нов в VII кл.: медиен текст. НВО VII: текст + диаграма.`;
+  } else {
+    insight = `<strong>Три нива + продуктивни задачи.</strong> Текстовете се класифицират по функционален стил. НВО X: 3 текста, 21 задачи, 90 мин. Продуктивни задачи (резюме, теза, CV) = 14–16 точки.`;
+  }
+
+  html += `<div class="insight-bar"><div class="ib-title">${{primary:'За началния етап',middle:'За прогимназията',high:'За гимназията'}[state.stage]}</div><div class="ib-content">${insight}</div></div>`;
+
+  area.innerHTML = html;
+}
+
+function toggleLevel(h) { h.parentElement.classList.toggle('open'); }
+function toggleTips(btn) { btn.parentElement.classList.toggle('open'); }
+
+updateProgress(1);
+</script>
+</body>
+</html>
